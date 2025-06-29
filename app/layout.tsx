@@ -12,6 +12,9 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Everett - Earn Real Money Daily",
   description: "Complete tasks, build your team, and earn real money with Everett",
+  icons: {
+    icon: "/everett-favicon.ico",
+  },
     generator: 'v0.dev'
 }
 

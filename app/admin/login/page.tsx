@@ -4,213 +4,125 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { EverettIcon } from "@/components/everett-icon"
-import { ScatteredCoins } from "@/components/scattered-coins"
 import { useToast } from "@/components/ui/use-toast"
-import { Shield, Lock, User, KeyRound } from "lucide-react"
+import { Shield, Lock, Mail } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
-export default function AdminLogin() {
-  const [username, setUsername] = useState("")
+export default function AdminLoginPage() {
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp] = useState("")
-  const router = useRouter()
   const { toast } = useToast()
+  const router = useRouter()
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const ADMIN_EMAIL = "teverret944@gmail.com"
+  const ADMIN_PASSWORD = "Musyoki801@"
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    try {
-      // Simulate credential verification
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Simulate loading delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // Check admin credentials (in production, this would be server-side)
-      if (username === "admin" && password === "everett2024") {
-        // Simulate OTP sending
-        await new Promise((resolve) => setTimeout(resolve, 500))
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      // Set admin session
+      localStorage.setItem(
+        "admin-session",
+        JSON.stringify({
+          email: ADMIN_EMAIL,
+          loginTime: new Date().toISOString(),
+          isAdmin: true,
+        }),
+      )
 
-        setOtpSent(true)
-        toast({
-          title: "Verification Code Sent",
-          description: "A one-time password has been sent to your registered device",
-        })
-      } else {
-        toast({
-          title: "Login Failed",
-          description: "Invalid admin credentials",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
       toast({
-        title: "Login Error",
-        description: "An error occurred during login",
+        title: "Login Successful",
+        description: "Welcome to Everett Admin Dashboard",
+      })
+
+      router.push("/admin/dashboard")
+    } else {
+      toast({
+        title: "Access Denied",
+        description: "Invalid admin credentials. Access denied.",
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!otp || otp.length !== 6) {
-      toast({
-        title: "Invalid OTP",
-        description: "Please enter the 6-digit verification code",
-        variant: "destructive",
-      })
-      return
     }
 
-    setIsLoading(true)
-
-    try {
-      // Simulate OTP verification
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // For demo purposes, any 6-digit code works
-      if (otp.length === 6) {
-        localStorage.setItem("admin-token", "authenticated")
-        toast({
-          title: "Admin Login Successful",
-          description: "Welcome to the Everett Admin Panel",
-        })
-        router.push("/admin")
-      } else {
-        toast({
-          title: "Invalid Code",
-          description: "The verification code is incorrect",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Verification Error",
-        description: "An error occurred during verification",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    setIsLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <ScatteredCoins count={20} />
-
-      <Card className="w-full max-w-md bg-black/80 border-yellow-600 relative z-10">
+    <div className="min-h-screen bg-gradient-to-br from-amber-900 via-yellow-800 to-amber-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-black/40 border-red-600/50">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <EverettIcon size={64} />
+          <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Shield className="h-8 w-8 text-red-400" />
           </div>
-          <CardTitle className="text-2xl text-yellow-400 flex items-center justify-center gap-2">
-            <Shield className="w-6 h-6" />
-            Admin Panel
-          </CardTitle>
-          <p className="text-yellow-200">Secure Administrator Access</p>
+          <CardTitle className="text-2xl font-bold text-red-400">Admin Access</CardTitle>
+          <p className="text-yellow-200">Everett Platform Management</p>
         </CardHeader>
         <CardContent>
-          {!otpSent ? (
-            <form onSubmit={handleSendOTP} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username" className="text-yellow-300 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Username
-                </Label>
+          <Alert className="mb-6 bg-red-600/20 border-red-600/50">
+            <Lock className="h-4 w-4" />
+            <AlertDescription className="text-red-200">
+              This area is restricted to authorized administrators only.
+            </AlertDescription>
+          </Alert>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-yellow-300">
+                Admin Email
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-yellow-400" />
                 <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter admin username"
+                  id="email"
+                  type="email"
+                  placeholder="Enter admin email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-black/50 border-yellow-600/50 text-white"
+                  className="pl-10 bg-yellow-900/20 border-yellow-600/50 text-yellow-200 placeholder-yellow-400/50"
                 />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-yellow-300 flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Password
-                </Label>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-yellow-300">
+                Admin Password
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-yellow-400" />
                 <Input
                   id="password"
                   type="password"
+                  placeholder="Enter admin password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter admin password"
                   required
-                  className="bg-black/50 border-yellow-600/50 text-white"
+                  className="pl-10 bg-yellow-900/20 border-yellow-600/50 text-yellow-200 placeholder-yellow-400/50"
                 />
               </div>
+            </div>
 
-              <Button type="submit" className="w-full everett-gradient text-white font-bold" disabled={isLoading}>
-                {isLoading ? "Verifying..." : "Continue"}
-              </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3"
+            >
+              {isLoading ? "Authenticating..." : "Access Admin Panel"}
+            </Button>
+          </form>
 
-              <div className="text-center mt-4">
-                <p className="text-yellow-300 text-sm">
-                  Need an admin account?{" "}
-                  <Link href="/admin/register" className="text-yellow-400 hover:underline">
-                    Register
-                  </Link>
-                </p>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="p-4 bg-yellow-900/20 rounded-lg border border-yellow-600/30 mb-4">
-                <p className="text-yellow-200 text-sm">
-                  A verification code has been sent to your registered device. Please enter it below to complete login.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="otp" className="text-yellow-300 flex items-center gap-2">
-                  <KeyRound className="w-4 h-4" />
-                  Verification Code (OTP)
-                </Label>
-                <Input
-                  id="otp"
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter 6-digit code"
-                  required
-                  maxLength={6}
-                  className="bg-black/50 border-yellow-600/50 text-white text-center text-xl tracking-widest"
-                />
-              </div>
-
-              <Button type="submit" className="w-full everett-gradient text-white font-bold" disabled={isLoading}>
-                {isLoading ? "Verifying..." : "Login to Admin Panel"}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-yellow-600/50 text-yellow-400"
-                onClick={() => setOtpSent(false)}
-              >
-                Back
-              </Button>
-            </form>
-          )}
-
-          <div className="mt-6 p-4 bg-yellow-900/20 rounded-lg border border-yellow-600/30">
-            <h4 className="font-semibold text-yellow-300 mb-2">Demo Credentials:</h4>
-            <p className="text-sm text-yellow-200">Username: admin</p>
-            <p className="text-sm text-yellow-200">Password: everett2024</p>
-            <p className="text-xs text-yellow-500 mt-2">For demo purposes, any 6-digit code will work as the OTP</p>
+          <div className="mt-6 text-center">
+            <p className="text-xs text-yellow-400">Unauthorized access attempts are logged and monitored.</p>
           </div>
         </CardContent>
       </Card>
