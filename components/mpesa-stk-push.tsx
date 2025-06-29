@@ -1,209 +1,197 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { Smartphone, CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { Loader2, CheckCircle, XCircle, Smartphone } from "lucide-react"
 
-interface MpesaSTKProps {
+interface MpesaSTKPushProps {
   amount: number
   onSuccess: (transactionId: string) => void
   onError: (error: string) => void
 }
 
-export function MpesaSTKPush({ amount, onSuccess, onError }: MpesaSTKProps) {
-  const { toast } = useToast()
+export function MpesaSTKPush({ amount, onSuccess, onError }: MpesaSTKPushProps) {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
-  const [status, setStatus] = useState<"idle" | "processing" | "success" | "error">("idle")
-  const [transactionId, setTransactionId] = useState("")
-  const [errorMessage, setErrorMessage] = useState("")
+  const [step, setStep] = useState<"input" | "processing" | "success" | "error">("input")
+  const [countdown, setCountdown] = useState(60)
+  const { toast } = useToast()
 
-  const validatePhoneNumber = (phone: string) => {
-    // Basic validation for Kenyan phone numbers
-    const regex = /^(?:254|\+254|0)?(7[0-9]{8})$/
-    return regex.test(phone)
-  }
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (step === "processing" && countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown((prev) => prev - 1)
+      }, 1000)
+    } else if (countdown === 0 && step === "processing") {
+      setStep("error")
+      onError("Payment timeout. Please try again.")
+    }
+    return () => clearInterval(interval)
+  }, [step, countdown, onError])
 
   const formatPhoneNumber = (phone: string) => {
     // Remove any non-digit characters
-    const digits = phone.replace(/\D/g, "")
+    const cleaned = phone.replace(/\D/g, "")
 
-    // Ensure it starts with 254
-    if (digits.startsWith("0")) {
-      return "254" + digits.substring(1)
-    } else if (digits.startsWith("254")) {
-      return digits
-    } else if (digits.length === 9 && digits.startsWith("7")) {
-      return "254" + digits
+    // Convert to international format
+    if (cleaned.startsWith("0")) {
+      return `254${cleaned.slice(1)}`
+    } else if (cleaned.startsWith("254")) {
+      return cleaned
+    } else if (cleaned.length === 9) {
+      return `254${cleaned}`
     }
-
-    return digits
+    return cleaned
   }
 
-  const initiateSTKPush = async () => {
-    if (!phoneNumber) {
-      toast({
-        title: "Phone Number Required",
-        description: "Please enter your M-Pesa phone number",
-        variant: "destructive",
-      })
-      return
-    }
+  const validatePhoneNumber = (phone: string) => {
+    const formatted = formatPhoneNumber(phone)
+    return formatted.length === 12 && formatted.startsWith("254")
+  }
 
+  const handlePayment = async () => {
     if (!validatePhoneNumber(phoneNumber)) {
       toast({
         title: "Invalid Phone Number",
-        description: "Please enter a valid Kenyan phone number",
+        description: "Please enter a valid Kenyan phone number (e.g., 0712345678)",
         variant: "destructive",
       })
       return
     }
 
     setIsProcessing(true)
-    setStatus("processing")
+    setStep("processing")
+    setCountdown(60)
 
     try {
-      // In a real implementation, this would be an API call to your backend
-      // which would then call the M-Pesa API
+      // Simulate M-Pesa STK Push
+      const formattedPhone = formatPhoneNumber(phoneNumber)
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      // In a real implementation, you would call your backend API here
+      // const response = await fetch('/api/mpesa/stk-push', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ phone: formattedPhone, amount })
+      // })
 
-      // Generate a random transaction ID
-      const mockTransactionId = "MPESA" + Math.random().toString(36).substring(2, 10).toUpperCase()
-      setTransactionId(mockTransactionId)
-
-      // Simulate STK push sent to phone
-      toast({
-        title: "STK Push Sent",
-        description: "Please check your phone and enter your M-Pesa PIN to complete the transaction",
-      })
-
-      // Simulate waiting for user to enter PIN
-      await new Promise((resolve) => setTimeout(resolve, 5000))
-
-      // 90% chance of success for demo purposes
-      if (Math.random() > 0.1) {
-        setStatus("success")
-        toast({
-          title: "Payment Successful",
-          description: `Your payment of ${amount} KES has been received. Transaction ID: ${mockTransactionId}`,
-        })
-        onSuccess(mockTransactionId)
-      } else {
-        throw new Error("Transaction failed or cancelled by user")
-      }
+      // Simulate processing time
+      setTimeout(() => {
+        // Simulate success (80% success rate)
+        if (Math.random() > 0.2) {
+          const transactionId = `MP${Date.now()}`
+          setStep("success")
+          setTimeout(() => {
+            onSuccess(transactionId)
+          }, 2000)
+        } else {
+          setStep("error")
+          onError("Payment was cancelled or failed. Please try again.")
+        }
+        setIsProcessing(false)
+      }, 3000)
     } catch (error) {
-      setStatus("error")
-      const errorMsg = error instanceof Error ? error.message : "Transaction failed"
-      setErrorMessage(errorMsg)
-      toast({
-        title: "Payment Failed",
-        description: errorMsg,
-        variant: "destructive",
-      })
-      onError(errorMsg)
-    } finally {
+      setStep("error")
       setIsProcessing(false)
+      onError("Network error. Please check your connection and try again.")
     }
   }
 
-  const retryTransaction = () => {
-    setStatus("idle")
-    setErrorMessage("")
-  }
-
   return (
-    <Card className="black-section border-yellow-600/30">
-      <CardHeader>
-        <CardTitle className="text-yellow-400 flex items-center gap-2">
-          <Smartphone className="w-5 h-5" />
+    <Card className="w-full max-w-md mx-auto border-green-200">
+      <CardHeader className="text-center">
+        <CardTitle className="flex items-center justify-center gap-2">
+          <Smartphone className="h-6 w-6 text-green-600" />
           M-Pesa Payment
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {status === "success" ? (
-          <div className="text-center py-6 space-y-4">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle className="w-8 h-8 text-green-500" />
-            </div>
-            <h3 className="text-xl font-bold text-green-400">Payment Successful!</h3>
-            <p className="text-yellow-300">Amount: {amount.toLocaleString()} KES</p>
-            <p className="text-sm text-yellow-500">Transaction ID: {transactionId}</p>
-            <Button
-              className="everett-gradient text-white mt-4"
-              onClick={() => {
-                setStatus("idle")
-                setPhoneNumber("")
-              }}
-            >
-              Make Another Payment
-            </Button>
-          </div>
-        ) : status === "error" ? (
-          <div className="text-center py-6 space-y-4">
-            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
-              <XCircle className="w-8 h-8 text-red-500" />
-            </div>
-            <h3 className="text-xl font-bold text-red-400">Payment Failed</h3>
-            <p className="text-yellow-300">{errorMessage}</p>
-            <Button className="everett-gradient text-white mt-4" onClick={retryTransaction}>
-              Try Again
-            </Button>
-          </div>
-        ) : (
+        {step === "input" && (
           <>
-            <div className="p-4 bg-green-900/20 rounded-lg border border-green-600/30 text-center">
-              <h3 className="font-bold text-green-400 text-lg mb-2">Amount to Pay</h3>
-              <p className="text-2xl font-bold text-white">{amount.toLocaleString()} KES</p>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <p className="text-lg font-semibold text-green-800">Amount: KES {amount.toLocaleString()}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-yellow-300">
-                M-Pesa Phone Number
-              </Label>
+              <Label htmlFor="phone">M-Pesa Phone Number</Label>
               <Input
                 id="phone"
                 type="tel"
-                placeholder="e.g. 0712345678"
+                placeholder="0712345678"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="bg-black/50 border-yellow-600/50 text-white"
-                disabled={isProcessing}
+                className="text-lg"
               />
-              <p className="text-xs text-yellow-500">Enter the phone number registered with M-Pesa</p>
+              <p className="text-xs text-muted-foreground">Enter your M-Pesa registered phone number</p>
             </div>
 
             <Button
-              onClick={initiateSTKPush}
-              disabled={isProcessing || !phoneNumber}
-              className="w-full everett-gradient text-white font-bold py-3"
+              onClick={handlePayment}
+              disabled={!phoneNumber || isProcessing}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3"
             >
-              {isProcessing ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing...
-                </div>
-              ) : (
-                `Pay ${amount.toLocaleString()} KES with M-Pesa`
-              )}
+              Send Payment Request
             </Button>
+          </>
+        )}
 
-            <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-600/30">
-              <h4 className="font-semibold text-blue-300 mb-2">How it works:</h4>
-              <ol className="text-sm text-blue-200 space-y-1">
-                <li>1. Enter your M-Pesa registered phone number</li>
-                <li>2. Click the payment button</li>
-                <li>3. You will receive an STK push notification on your phone</li>
-                <li>4. Enter your M-Pesa PIN to complete the payment</li>
-                <li>5. Your account will be credited automatically</li>
+        {step === "processing" && (
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-green-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Payment Request Sent</h3>
+              <p className="text-muted-foreground">Check your phone for the M-Pesa prompt</p>
+              <p className="text-sm text-green-600 font-medium mt-2">Time remaining: {countdown}s</p>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-lg text-sm">
+              <p className="font-medium text-blue-800">Instructions:</p>
+              <ol className="list-decimal list-inside text-blue-700 mt-1 space-y-1">
+                <li>Check your phone for M-Pesa notification</li>
+                <li>Enter your M-Pesa PIN</li>
+                <li>Confirm the payment</li>
               </ol>
             </div>
-          </>
+          </div>
+        )}
+
+        {step === "success" && (
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <CheckCircle className="h-16 w-16 text-green-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg text-green-800">Payment Successful!</h3>
+              <p className="text-muted-foreground">Your deposit of KES {amount.toLocaleString()} has been processed</p>
+            </div>
+          </div>
+        )}
+
+        {step === "error" && (
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <XCircle className="h-16 w-16 text-red-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg text-red-800">Payment Failed</h3>
+              <p className="text-muted-foreground">The payment could not be processed. Please try again.</p>
+            </div>
+            <Button
+              onClick={() => {
+                setStep("input")
+                setCountdown(60)
+              }}
+              variant="outline"
+              className="w-full border-red-600 text-red-700 hover:bg-red-50"
+            >
+              Try Again
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>

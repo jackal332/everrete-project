@@ -1,7 +1,6 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { auth } from "../auth"
 
 interface User {
   id: string
@@ -18,7 +17,7 @@ interface User {
 
 interface UserContextType {
   user: User | null
-  isLoading: boolean
+  loading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (userData: Omit<User, "id" | "balance" | "isActivated" | "joinDate" | "referralCode">) => Promise<void>
   logout: () => void
@@ -30,50 +29,77 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing user session on mount
-    const currentUser = auth.getCurrentUser()
-    setUser(currentUser)
-    setIsLoading(false)
-
-    // Set up session refresh interval
-    const interval = setInterval(() => {
-      const user = auth.getCurrentUser()
-      if (user) {
-        auth.refreshSession()
-      } else if (user !== null) {
-        // Session expired
-        setUser(null)
+    // Simulate checking for existing user session
+    const checkSession = async () => {
+      try {
+        // Check localStorage for user session
+        const storedUser = localStorage.getItem("everett_user")
+        if (storedUser) {
+          const userData = JSON.parse(storedUser)
+          setUser(userData)
+        }
+      } catch (error) {
+        console.error("Error checking session:", error)
+      } finally {
+        setLoading(false)
       }
-    }, 60000) // Check every minute
+    }
 
-    return () => clearInterval(interval)
+    checkSession()
   }, [])
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true)
+    setLoading(true)
     try {
-      const user = await auth.login(email, password)
-      setUser(user)
+      // Simulate login - replace with actual auth logic
+      const mockUser: User = {
+        id: "1",
+        name: "John Doe",
+        email: email,
+        phone: "+254700000000",
+        package: "Bronze",
+        balance: 1500,
+        isActivated: true,
+        joinDate: new Date().toISOString(),
+        referralCode: "REF123456",
+      }
+
+      localStorage.setItem("everett_user", JSON.stringify(mockUser))
+      setUser(mockUser)
+    } catch (error) {
+      throw new Error("Login failed")
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   const register = async (userData: Omit<User, "id" | "balance" | "isActivated" | "joinDate" | "referralCode">) => {
-    setIsLoading(true)
+    setLoading(true)
     try {
-      const user = await auth.register(userData)
-      setUser(user)
+      // Simulate registration - replace with actual auth logic
+      const newUser: User = {
+        ...userData,
+        id: Date.now().toString(),
+        balance: 50, // Welcome bonus
+        isActivated: false,
+        joinDate: new Date().toISOString(),
+        referralCode: `REF${Date.now()}`,
+      }
+
+      localStorage.setItem("everett_user", JSON.stringify(newUser))
+      setUser(newUser)
+    } catch (error) {
+      throw new Error("Registration failed")
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   const logout = () => {
-    auth.logout()
+    localStorage.removeItem("everett_user")
     setUser(null)
   }
 
@@ -81,17 +107,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (user) {
       const updatedUser = { ...user, ...updates }
       setUser(updatedUser)
-      auth.updateUser(updates)
+      localStorage.setItem("everett_user", JSON.stringify(updatedUser))
     }
   }
 
   const refreshSession = () => {
-    auth.refreshSession()
+    // Refresh user session if needed
+    const storedUser = localStorage.getItem("everett_user")
+    if (storedUser) {
+      const userData = JSON.parse(storedUser)
+      setUser(userData)
+    }
   }
 
   const value = {
     user,
-    isLoading,
+    loading,
     login,
     register,
     logout,
