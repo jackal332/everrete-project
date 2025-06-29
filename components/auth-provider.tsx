@@ -5,6 +5,7 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
+// Add lastActive to User type
 type User = {
   id: string
   name: string
@@ -17,6 +18,7 @@ type User = {
   referredBy: string | null
   tasksCompleted: number
   totalEarned: number
+  lastActive: string // Add this line
 }
 
 type AuthContextType = {
@@ -26,6 +28,7 @@ type AuthContextType = {
   register: (name: string, email: string, password: string, referralCode?: string) => Promise<void>
   logout: () => void
   updateUser: (userData: Partial<User>) => void
+  updateLastActive: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -35,11 +38,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
+  // Add session check in useEffect
   useEffect(() => {
     // Check if user is logged in from localStorage
-    const storedUser = localStorage.getItem("goldedge-user")
+    const storedUser = localStorage.getItem("everett-user")
     if (storedUser) {
-      setUser(JSON.parse(storedUser))
+      const parsedUser = JSON.parse(storedUser)
+
+      // Check if session has timed out (5 minutes)
+      const lastActive = new Date(parsedUser.lastActive || Date.now())
+      const now = new Date()
+      const diffMinutes = (now.getTime() - lastActive.getTime()) / (1000 * 60)
+
+      if (diffMinutes > 5) {
+        // Session timed out, force logout
+        logout()
+        return
+      }
+
+      // Update last active time
+      parsedUser.lastActive = now.toISOString()
+      localStorage.setItem("everett-user", JSON.stringify(parsedUser))
+      setUser(parsedUser)
     }
     setIsLoading(false)
   }, [])
@@ -59,15 +79,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         jobTier: null,
         balance: 0,
         inviteBalance: 0,
-        referralCode: "GE" + Math.random().toString(36).substr(2, 6).toUpperCase(),
+        referralCode: "EV" + Math.random().toString(36).substr(2, 6).toUpperCase(),
         referredBy: null,
         tasksCompleted: 0,
         totalEarned: 0,
+        lastActive: new Date().toISOString(),
       }
 
       setUser(mockUser)
-      localStorage.setItem("goldedge-user", JSON.stringify(mockUser))
-      router.push("/dashboard")
+      localStorage.setItem("everett-user", JSON.stringify(mockUser))
+
+      // Redirect to packages page if not activated, otherwise to dashboard
+      if (!mockUser.isActivated) {
+        router.push("/dashboard/packages")
+      } else {
+        router.push("/dashboard")
+      }
     } catch (error) {
       console.error("Login failed:", error)
       throw error
@@ -91,15 +118,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         jobTier: null,
         balance: 0,
         inviteBalance: 0,
-        referralCode: "GE" + Math.random().toString(36).substr(2, 6).toUpperCase(),
+        referralCode: "EV" + Math.random().toString(36).substr(2, 6).toUpperCase(),
         referredBy: referralCode || null,
         tasksCompleted: 0,
         totalEarned: 0,
+        lastActive: new Date().toISOString(),
       }
 
       setUser(mockUser)
-      localStorage.setItem("goldedge-user", JSON.stringify(mockUser))
-      router.push("/dashboard")
+      localStorage.setItem("everett-user", JSON.stringify(mockUser))
+      router.push("/dashboard/packages")
     } catch (error) {
       console.error("Registration failed:", error)
       throw error
@@ -110,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null)
-    localStorage.removeItem("goldedge-user")
+    localStorage.removeItem("everett-user")
     router.push("/")
   }
 
@@ -118,12 +146,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       const updatedUser = { ...user, ...userData }
       setUser(updatedUser)
-      localStorage.setItem("goldedge-user", JSON.stringify(updatedUser))
+      localStorage.setItem("everett-user", JSON.stringify(updatedUser))
     }
   }
 
+  // Add function to update last active time
+  const updateLastActive = () => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        lastActive: new Date().toISOString(),
+      }
+      setUser(updatedUser)
+      localStorage.setItem("everett-user", JSON.stringify(updatedUser))
+    }
+  }
+
+  // Add activity listener
+  useEffect(() => {
+    const handleActivity = () => {
+      updateLastActive()
+    }
+
+    // Add event listeners for user activity
+    window.addEventListener("mousemove", handleActivity)
+    window.addEventListener("keydown", handleActivity)
+    window.addEventListener("click", handleActivity)
+    window.addEventListener("touchstart", handleActivity)
+
+    // Set interval to check session timeout every minute
+    const interval = setInterval(() => {
+      if (user) {
+        const lastActive = new Date(user.lastActive)
+        const now = new Date()
+        const diffMinutes = (now.getTime() - lastActive.getTime()) / (1000 * 60)
+
+        if (diffMinutes > 5) {
+          logout()
+          // toast({
+          //   title: "Session Expired",
+          //   description: "Your session has expired. Please log in again.",
+          //   variant: "destructive",
+          // })
+        }
+      }
+    }, 60000)
+
+    return () => {
+      window.removeEventListener("mousemove", handleActivity)
+      window.removeEventListener("keydown", handleActivity)
+      window.removeEventListener("click", handleActivity)
+      window.removeEventListener("touchstart", handleActivity)
+      clearInterval(interval)
+    }
+  }, [user])
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        register,
+        logout,
+        updateUser,
+        updateLastActive,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

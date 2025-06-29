@@ -171,14 +171,18 @@ export default function PackagesPage() {
 
   const confirmActivation = () => {
     if (selectedPackage) {
+      const isUpgrade = user?.isActivated && user?.jobTier !== null && selectedPackage.id > user.jobTier
+
       updateUser({
         isActivated: true,
         jobTier: selectedPackage.id,
       })
 
       toast({
-        title: "Package Activated!",
-        description: `You've successfully activated ${selectedPackage.name}. Start earning now!`,
+        title: isUpgrade ? "Package Upgraded!" : "Package Activated!",
+        description: isUpgrade
+          ? `You've successfully upgraded to ${selectedPackage.name}. Enjoy the increased benefits!`
+          : `You've successfully activated ${selectedPackage.name}. Start earning now!`,
       })
 
       setSelectedPackage(null)
@@ -200,7 +204,7 @@ export default function PackagesPage() {
         {user?.isActivated && (
           <Card className="black-section border-green-600/50 mb-6">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
                     <CheckCircle className="w-6 h-6 text-white" />
@@ -212,7 +216,23 @@ export default function PackagesPage() {
                     </p>
                   </div>
                 </div>
-                <Badge className="bg-green-500 text-white">Active</Badge>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Button
+                    className="everett-gradient text-white"
+                    onClick={() => {
+                      const nextTier = user.jobTier + 1
+                      if (nextTier <= 9) {
+                        const upgradePkg = packages.find((p) => p.id === nextTier)
+                        if (upgradePkg) {
+                          setSelectedPackage(upgradePkg)
+                        }
+                      }
+                    }}
+                  >
+                    Upgrade Package
+                  </Button>
+                  <Badge className="bg-green-500 text-white justify-center py-3 text-sm font-semibold">Active</Badge>
+                </div>
               </div>
             </CardContent>
           </Card>

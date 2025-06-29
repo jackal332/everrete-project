@@ -54,7 +54,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+    <div className="min-h-screen w-full bg-black flex items-center justify-center p-4 overflow-hidden">
       <GoldCoins count={10} />
       <Card className="w-full max-w-md border-yellow-800 bg-black/90">
         <CardHeader className="space-y-1">
@@ -154,7 +154,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button variant="outline" className="border-yellow-900 text-white hover:bg-yellow-950">
               <svg
                 xmlns="http://www.w3.org/2000/svg"

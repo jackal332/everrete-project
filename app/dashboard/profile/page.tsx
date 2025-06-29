@@ -25,12 +25,39 @@ import {
   Edit,
   Settings,
   Shield,
+  Loader2,
 } from "lucide-react"
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth()
+  const { user, logout, isLoading } = useAuth()
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("overview")
+
+  // Show loading state during initial load
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-yellow-400" />
+          <p className="text-yellow-400">Loading profile...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message if no user (shouldn't happen in protected route, but good fallback)
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-yellow-400 mb-4">Please log in to view your profile</p>
+          <Button onClick={() => (window.location.href = "/login")} className="everett-gradient text-white">
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   const copyReferralCode = () => {
     if (user?.referralCode) {
@@ -43,12 +70,12 @@ export default function ProfilePage() {
   }
 
   const shareProfile = () => {
-    const referralLink = `https://everett-platform.vercel.app/register?ref=${user?.referralCode}`
+    const referralLink = `https://everett-platform.vercel.app/register?ref=${user?.referralCode || ""}`
 
     if (navigator.share) {
       navigator.share({
         title: "Join Everett",
-        text: `Join me on Everett and start earning! Use my referral code: ${user?.referralCode}`,
+        text: `Join me on Everett and start earning! Use my referral code: ${user?.referralCode || ""}`,
         url: referralLink,
       })
     } else {
@@ -61,7 +88,7 @@ export default function ProfilePage() {
   }
 
   const getJobTierIcon = (tier: number | null) => {
-    if (tier === null) return <Package className="w-6 h-6" />
+    if (tier === null || tier === undefined) return <Package className="w-6 h-6" />
     if (tier <= 2) return <Package className="w-6 h-6" />
     if (tier <= 4) return <Star className="w-6 h-6" />
     if (tier <= 6) return <Crown className="w-6 h-6" />
@@ -69,7 +96,7 @@ export default function ProfilePage() {
   }
 
   const getJobTierColor = (tier: number | null) => {
-    if (tier === null) return "text-gray-400"
+    if (tier === null || tier === undefined) return "text-gray-400"
     if (tier <= 2) return "text-blue-400"
     if (tier <= 4) return "text-yellow-400"
     if (tier <= 6) return "text-purple-400"
@@ -79,7 +106,7 @@ export default function ProfilePage() {
   const achievements = [
     { id: 1, name: "First Task", description: "Complete your first task", earned: true },
     { id: 2, name: "Week Warrior", description: "Complete tasks for 7 days straight", earned: true },
-    { id: 3, name: "Referral Master", description: "Refer 10 users", earned: user?.referralCount >= 10 },
+    { id: 3, name: "Referral Master", description: "Refer 10 users", earned: (user?.referralCount || 0) >= 10 },
     { id: 4, name: "High Earner", description: "Earn 50,000 KES", earned: (user?.totalEarned || 0) >= 50000 },
     { id: 5, name: "Team Builder", description: "Build a team of 25 referrals", earned: false },
     { id: 6, name: "Elite Member", description: "Reach Job Tier 5", earned: (user?.jobTier || 0) >= 5 },
@@ -116,12 +143,12 @@ export default function ProfilePage() {
               {/* User Info */}
               <div className="flex-1 text-center md:text-left">
                 <h1 className="text-2xl font-bold text-white mb-2">{user?.name || "User"}</h1>
-                <p className="text-yellow-400 mb-2">{user?.email}</p>
+                <p className="text-yellow-400 mb-2">{user?.email || ""}</p>
                 <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                   <Badge className={user?.isActivated ? "bg-green-500" : "bg-red-500"}>
                     {user?.isActivated ? "Activated" : "Not Activated"}
                   </Badge>
-                  {user?.jobTier !== null && (
+                  {user?.jobTier !== null && user?.jobTier !== undefined && (
                     <Badge className="everett-gradient text-white">Job Tier {user.jobTier}</Badge>
                   )}
                   <Badge variant="outline" className="border-yellow-600 text-yellow-400">
@@ -189,15 +216,15 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-yellow-500">Total Earned:</span>
-                  <span className="text-green-400 font-semibold">{user?.totalEarned?.toLocaleString() || 0} KES</span>
+                  <span className="text-green-400 font-semibold">{(user?.totalEarned || 0).toLocaleString()} KES</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-yellow-500">Referrals:</span>
-                  <span className="text-blue-400 font-semibold">{user?.referralCount || 0}</span>
+                  <span className="text-blue-400 font-semibold">{(user as any)?.referralCount || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-yellow-500">Current Balance:</span>
-                  <span className="text-yellow-300 font-semibold">{user?.balance?.toLocaleString() || 0} KES</span>
+                  <span className="text-yellow-300 font-semibold">{(user?.balance || 0).toLocaleString()} KES</span>
                 </div>
               </CardContent>
             </Card>
@@ -213,7 +240,7 @@ export default function ProfilePage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-yellow-500" />
-                  <span className="text-white text-sm">{user?.email}</span>
+                  <span className="text-white text-sm">{user?.email || ""}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="w-4 h-4 text-yellow-500" />
@@ -271,21 +298,21 @@ export default function ProfilePage() {
               <Card className="black-section border-green-600/30">
                 <CardContent className="p-4 text-center">
                   <DollarSign className="w-8 h-8 mx-auto mb-2 text-green-400" />
-                  <p className="text-2xl font-bold text-green-300">{user?.balance?.toLocaleString() || 0}</p>
+                  <p className="text-2xl font-bold text-green-300">{(user?.balance || 0).toLocaleString()}</p>
                   <p className="text-sm text-green-500">Current Balance (KES)</p>
                 </CardContent>
               </Card>
               <Card className="black-section border-blue-600/30">
                 <CardContent className="p-4 text-center">
                   <TrendingUp className="w-8 h-8 mx-auto mb-2 text-blue-400" />
-                  <p className="text-2xl font-bold text-blue-300">{user?.totalEarned?.toLocaleString() || 0}</p>
+                  <p className="text-2xl font-bold text-blue-300">{(user?.totalEarned || 0).toLocaleString()}</p>
                   <p className="text-sm text-blue-500">Total Earned (KES)</p>
                 </CardContent>
               </Card>
               <Card className="black-section border-purple-600/30">
                 <CardContent className="p-4 text-center">
                   <Users className="w-8 h-8 mx-auto mb-2 text-purple-400" />
-                  <p className="text-2xl font-bold text-purple-300">{user?.inviteBalance?.toLocaleString() || 0}</p>
+                  <p className="text-2xl font-bold text-purple-300">{(user?.inviteBalance || 0).toLocaleString()}</p>
                   <p className="text-sm text-purple-500">Referral Earnings (KES)</p>
                 </CardContent>
               </Card>
@@ -317,7 +344,7 @@ export default function ProfilePage() {
                       <p className="font-semibold text-white">Referral Bonuses</p>
                       <p className="text-sm text-yellow-500">8% commission from referrals</p>
                     </div>
-                    <p className="text-blue-400 font-bold">+{user?.inviteBalance?.toLocaleString() || 0} KES</p>
+                    <p className="text-blue-400 font-bold">+{(user?.inviteBalance || 0).toLocaleString()} KES</p>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-yellow-900/20 rounded-lg">
                     <div>
@@ -394,14 +421,14 @@ export default function ProfilePage() {
               <Card className="black-section border-blue-600/30">
                 <CardContent className="p-4 text-center">
                   <Users className="w-8 h-8 mx-auto mb-2 text-blue-400" />
-                  <p className="text-2xl font-bold text-blue-300">{user?.referralCount || 0}</p>
+                  <p className="text-2xl font-bold text-blue-300">{(user as any)?.referralCount || 0}</p>
                   <p className="text-sm text-blue-500">Total Referrals</p>
                 </CardContent>
               </Card>
               <Card className="black-section border-green-600/30">
                 <CardContent className="p-4 text-center">
                   <DollarSign className="w-8 h-8 mx-auto mb-2 text-green-400" />
-                  <p className="text-2xl font-bold text-green-300">{user?.inviteBalance?.toLocaleString() || 0}</p>
+                  <p className="text-2xl font-bold text-green-300">{(user?.inviteBalance || 0).toLocaleString()}</p>
                   <p className="text-sm text-green-500">Referral Earnings (KES)</p>
                 </CardContent>
               </Card>

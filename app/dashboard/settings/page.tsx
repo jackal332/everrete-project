@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,17 +10,18 @@ import { useAuth } from "@/components/auth-provider"
 import { useToast } from "@/components/ui/use-toast"
 import { TwoFactorAuth } from "@/components/two-factor-auth"
 import { ScatteredCoins } from "@/components/scattered-coins"
-import { User, Lock, Bell, Smartphone, Mail, Shield } from "lucide-react"
+import { User, Lock, Bell, Smartphone, Mail, Shield, Loader2 } from "lucide-react"
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(true)
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
 
   // Form states
-  const [name, setName] = useState(user?.name || "")
-  const [email, setEmail] = useState(user?.email || "")
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -32,14 +33,32 @@ export default function SettingsPage() {
   const [pushNotifications, setPushNotifications] = useState(true)
   const [taskReminders, setTaskReminders] = useState(true)
 
+  // Initialize form with user data when available
+  useEffect(() => {
+    if (user) {
+      setName(user.name || "")
+      setEmail(user.email || "")
+      setPhone(user.phone || "")
+      setIsPageLoading(false)
+    } else {
+      // Add a small delay to prevent flickering if user data loads quickly
+      const timer = setTimeout(() => {
+        setIsPageLoading(false)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [user])
+
   const handleProfileUpdate = async () => {
     setIsLoading(true)
     try {
-      updateUser({ name, email })
-      toast({
-        title: "Profile Updated",
-        description: "Your profile information has been updated successfully.",
-      })
+      if (user) {
+        updateUser({ name, email })
+        toast({
+          title: "Profile Updated",
+          description: "Your profile information has been updated successfully.",
+        })
+      }
     } catch (error) {
       toast({
         title: "Update Failed",
@@ -97,6 +116,36 @@ export default function SettingsPage() {
     // Simulate verification
     await new Promise((resolve) => setTimeout(resolve, 1000))
     return code === "123456" // Demo code
+  }
+
+  // Show loading state
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
+          <p className="text-yellow-400 font-medium">Loading settings...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message if no user
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-yellow-400 font-medium">Please log in to access your settings</p>
+              <Button className="mt-4 everett-gradient" onClick={() => (window.location.href = "/login")}>
+                Go to Login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -298,7 +347,9 @@ export default function SettingsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-yellow-500">Job Tier:</span>
-                <span className="text-white">{user?.jobTier !== null ? `Job ${user.jobTier}` : "Not Set"}</span>
+                <span className="text-white">
+                  {user?.jobTier !== null && user?.jobTier !== undefined ? `Job ${user.jobTier}` : "Not Set"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-yellow-500">2FA Status:</span>
