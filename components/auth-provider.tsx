@@ -70,30 +70,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // Mock user data
+      // Mock user data - check if user has activated package
       const mockUser: User = {
         id: "user-" + Math.random().toString(36).substr(2, 9),
         name: email.split("@")[0],
         email,
-        isActivated: false,
-        jobTier: null,
-        balance: 0,
-        inviteBalance: 0,
+        isActivated: Math.random() > 0.5, // Randomly assign for demo
+        jobTier: Math.random() > 0.5 ? Math.floor(Math.random() * 9) + 1 : null,
+        balance: Math.floor(Math.random() * 10000),
+        inviteBalance: Math.floor(Math.random() * 5000),
         referralCode: "EV" + Math.random().toString(36).substr(2, 6).toUpperCase(),
         referredBy: null,
-        tasksCompleted: 0,
-        totalEarned: 0,
+        tasksCompleted: Math.floor(Math.random() * 50),
+        totalEarned: Math.floor(Math.random() * 50000),
         lastActive: new Date().toISOString(),
       }
 
       setUser(mockUser)
       localStorage.setItem("everett-user", JSON.stringify(mockUser))
 
-      // Redirect to packages page if not activated, otherwise to dashboard
-      if (!mockUser.isActivated) {
-        router.push("/dashboard/packages")
-      } else {
+      // Redirect logic: Dashboard if activated, Packages if not
+      if (mockUser.isActivated && mockUser.jobTier !== null) {
         router.push("/dashboard")
+      } else {
+        router.push("/dashboard/packages")
       }
     } catch (error) {
       console.error("Login failed:", error)

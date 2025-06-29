@@ -315,7 +315,13 @@ export default function PackagesPage() {
                     disabled={isActivating === pkg.id}
                     onClick={(e) => {
                       e.stopPropagation()
-                      activatePackage(pkg)
+                      if (pkg.id === 0) {
+                        // Free package - activate immediately
+                        activatePackage(pkg)
+                      } else {
+                        // Paid packages - redirect to manual payment
+                        window.location.href = `/dashboard/manual-payment?package=${pkg.id}`
+                      }
                     }}
                   >
                     {isActivating === pkg.id ? (
@@ -326,7 +332,7 @@ export default function PackagesPage() {
                     ) : pkg.id === 0 ? (
                       "Try Free"
                     ) : (
-                      "Activate Package"
+                      "Purchase Package"
                     )}
                   </Button>
                 )}

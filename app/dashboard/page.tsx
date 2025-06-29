@@ -91,6 +91,58 @@ export default function Dashboard() {
                 : "Activate your account to start earning daily income."}
             </p>
 
+            {user?.isActivated && user?.jobTier !== null && (
+              <Card className="black-section border-green-600/50 mb-4">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                        <Award className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-green-400">You're subscribed to Job {user.jobTier}</h3>
+                        <p className="text-sm text-green-300">
+                          {user.jobTier === 0
+                            ? "Intern Package - Trial Period"
+                            : user.jobTier <= 2
+                              ? "Bronze Package"
+                              : user.jobTier <= 4
+                                ? "Silver Package"
+                                : user.jobTier <= 6
+                                  ? "Gold Package"
+                                  : "Diamond Package"}
+                        </p>
+                      </div>
+                    </div>
+                    <Link href="/dashboard/packages">
+                      <Button className="everett-gradient text-white font-semibold">Upgrade Package</Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!user?.isActivated && (
+              <Card className="black-section border-orange-600/50 mb-4">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
+                        <Bell className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-orange-400">Activate Your Account</h3>
+                        <p className="text-sm text-orange-300">Choose a package to start earning daily income</p>
+                      </div>
+                    </div>
+                    <Link href="/dashboard/packages">
+                      <Button className="everett-gradient text-white font-semibold">Choose Package</Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Enhanced Balance Cards */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <Card className="wallet-card">
